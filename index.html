@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>本地素材预览器</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Local Asset Inspector</p>
+          <h1>本地素材预览器</h1>
+          <p class="subtitle">
+            将 PSD、FBX、GLB/glTF、OBJ 文件拖进网页，在浏览器里查看预览、层级、基础属性和规范检查结果。
+            文件只在本机解析，不会上传到服务器。
+          </p>
+        </div>
+        <div class="support-card">
+          <span>支持格式</span>
+          <strong>.psd .fbx .glb .gltf .obj</strong>
+        </div>
+      </section>
+
+      <section id="drop-zone" class="drop-zone" tabindex="0">
+        <input id="file-input" type="file" multiple accept=".psd,.fbx,.glb,.gltf,.obj" />
+        <div class="drop-icon">+</div>
+        <h2>拖拽文件到这里</h2>
+        <p>或点击选择文件。OBJ 的外部材质贴图第一版不会自动关联，建议优先使用 GLB/glTF。</p>
+      </section>
+
+      <section class="workspace">
+        <aside class="sidebar">
+          <div class="panel">
+            <div class="panel-header">
+              <h2>文件信息</h2>
+              <button id="clear-button" class="ghost-button" type="button">清空</button>
+            </div>
+            <dl id="file-info" class="info-list">
+              <dt>状态</dt>
+              <dd>等待选择文件</dd>
+            </dl>
+          </div>
+
+          <div class="panel tree-panel">
+            <div class="panel-header">
+              <h2>层级结构</h2>
+              <span id="tree-count" class="muted">0 项</span>
+            </div>
+            <div id="tree-view" class="tree-view empty">暂无层级信息</div>
+          </div>
+        </aside>
+
+        <section class="preview-column">
+          <div class="panel preview-panel">
+            <div class="panel-header">
+              <h2>预览</h2>
+              <span id="preview-label" class="muted">未加载</span>
+            </div>
+            <div id="preview" class="preview empty">
+              <p>选择素材后会在这里显示 PSD 合成预览或 3D 模型视窗。</p>
+            </div>
+          </div>
+
+          <div class="details-grid">
+            <div class="panel">
+              <div class="panel-header">
+                <h2>节点详情</h2>
+              </div>
+              <dl id="node-details" class="info-list">
+                <dt>状态</dt>
+                <dd>点击左侧层级节点查看详情</dd>
+              </dl>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <h2>规范检查</h2>
+                <span id="issue-count" class="muted">0 条</span>
+              </div>
+              <ul id="issue-list" class="issue-list">
+                <li class="empty">暂无检查结果</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="./app.mjs?v=4"></script>
+  </body>
+</html>
