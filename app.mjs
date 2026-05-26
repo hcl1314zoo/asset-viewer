@@ -9,6 +9,10 @@ const elements = {
   treeCount: $("#tree-count"),
   preview: $("#preview"),
   previewLabel: $("#preview-label"),
+  animationControls: $("#animation-controls"),
+  animationStatus: $("#animation-status"),
+  animationSelect: $("#animation-select"),
+  animationToggle: $("#animation-toggle"),
   nodeDetails: $("#node-details"),
   issueList: $("#issue-list"),
   issueCount: $("#issue-count"),
@@ -22,6 +26,12 @@ let activeObjectUrl = null;
 let currentTree = [];
 let selectedNodeId = null;
 let threeRuntime = null;
+let animationState = {
+  mixer: null,
+  actions: [],
+  activeAction: null,
+  isPlaying: false,
+};
 
 window.addEventListener("error", (event) => showError(`页面脚本错误：${event.message}`));
 window.addEventListener("unhandledrejection", (event) => {
@@ -49,6 +59,10 @@ elements.dropZone.addEventListener("drop", (event) => {
 
 elements.fileInput.addEventListener("change", (event) => handleFiles(event.target.files));
 elements.clearButton.addEventListener("click", resetView);
+elements.animationToggle.addEventListener("click", toggleAnimationPlayback);
+elements.animationSelect.addEventListener("change", () => {
+  playAnimation(Number(elements.animationSelect.value));
+});
 
 resetView();
 
@@ -120,11 +134,14 @@ async function parseModel(file, extension) {
   activeObjectUrl = url;
 
   let rootObject;
+  let animations = [];
   if (extension === "glb" || extension === "gltf") {
     const result = await new GLTFLoader().loadAsync(url);
     rootObject = result.scene;
+    animations = result.animations ?? [];
   } else if (extension === "fbx") {
     rootObject = await new FBXLoader().loadAsync(url);
+    animations = rootObject.animations ?? [];
   } else {
     rootObject = await new OBJLoader().loadAsync(url);
   }
@@ -133,13 +150,14 @@ async function parseModel(file, extension) {
   const stats = collectModelStats(rootObject);
   currentTree = [mapThreeObject(rootObject, "model-root")];
 
-  renderModel(rootObject, THREE, OrbitControls);
+  renderModel(rootObject, animations, THREE, OrbitControls);
   renderTree(currentTree);
   renderFileInfo(file, "3D 模型解析完成", {
     对象数: stats.objects,
     网格数: stats.meshes,
     三角面: stats.triangles,
     材质数: stats.materials,
+    动画数: animations.length,
   });
   renderIssues(checkModelRules(currentTree, stats, extension));
   elements.previewLabel.textContent = `${extension.toUpperCase()} 3D 预览`;
@@ -213,7 +231,7 @@ function mapThreeObject(object, id) {
   };
 }
 
-function renderModel(rootObject, THREE, OrbitControls) {
+function renderModel(rootObject, animations, THREE, OrbitControls) {
   resetSceneOnly();
   elements.preview.className = "preview";
   elements.preview.innerHTML = "";
@@ -240,6 +258,7 @@ function renderModel(rootObject, THREE, OrbitControls) {
   scene.add(new THREE.GridHelper(10, 10, 0x334155, 0x1e293b));
   scene.add(rootObject);
   fitCameraToObject(camera, controls, rootObject, THREE);
+  setupAnimations(rootObject, animations, THREE);
 
   const resizeObserver = new ResizeObserver(() => {
     const nextWidth = elements.preview.clientWidth || width;
@@ -249,10 +268,15 @@ function renderModel(rootObject, THREE, OrbitControls) {
   });
   resizeObserver.observe(elements.preview);
 
+  const clock = new THREE.Clock();
   function animate() {
     if (activeRenderer !== renderer) {
       resizeObserver.disconnect();
       return;
+    }
+    const delta = clock.getDelta();
+    if (animationState.mixer && animationState.isPlaying) {
+      animationState.mixer.update(delta);
     }
     controls.update();
     renderer.render(scene, camera);
@@ -266,6 +290,7 @@ function renderPreviewCanvas(canvas, label) {
   elements.preview.className = "preview";
   elements.preview.innerHTML = "";
   elements.previewLabel.textContent = label;
+  hideAnimationControls();
 
   if (!canvas) {
     elements.preview.classList.add("empty");
@@ -274,6 +299,79 @@ function renderPreviewCanvas(canvas, label) {
   }
 
   elements.preview.appendChild(canvas);
+}
+
+function setupAnimations(rootObject, animations, THREE) {
+  resetAnimationState();
+
+  if (!animations.length) {
+    elements.animationControls.classList.remove("hidden");
+    elements.animationStatus.textContent = "未检测到动画";
+    elements.animationSelect.innerHTML = '<option value="">无可播放动画</option>';
+    elements.animationSelect.disabled = true;
+    elements.animationToggle.disabled = true;
+    elements.animationToggle.textContent = "播放";
+    return;
+  }
+
+  animationState.mixer = new THREE.AnimationMixer(rootObject);
+  animationState.actions = animations.map((clip) => animationState.mixer.clipAction(clip));
+  elements.animationControls.classList.remove("hidden");
+  elements.animationStatus.textContent = `检测到 ${animations.length} 个动画`;
+  elements.animationSelect.disabled = false;
+  elements.animationToggle.disabled = false;
+  elements.animationSelect.innerHTML = animations
+    .map((clip, index) => `<option value="${index}">${escapeHtml(clip.name || `动画 ${index + 1}`)}</option>`)
+    .join("");
+  playAnimation(0);
+}
+
+function playAnimation(index) {
+  const action = animationState.actions[index];
+  if (!action) return;
+
+  if (animationState.activeAction && animationState.activeAction !== action) {
+    animationState.activeAction.stop();
+  }
+
+  animationState.activeAction = action;
+  animationState.activeAction.reset().play();
+  animationState.isPlaying = true;
+  elements.animationToggle.textContent = "暂停";
+  elements.animationSelect.value = String(index);
+}
+
+function toggleAnimationPlayback() {
+  if (!animationState.activeAction) return;
+
+  animationState.isPlaying = !animationState.isPlaying;
+  animationState.activeAction.paused = !animationState.isPlaying;
+  elements.animationToggle.textContent = animationState.isPlaying ? "暂停" : "播放";
+}
+
+function resetAnimationState() {
+  if (animationState.activeAction) {
+    animationState.activeAction.stop();
+  }
+  if (animationState.mixer) {
+    animationState.mixer.stopAllAction();
+  }
+  animationState = {
+    mixer: null,
+    actions: [],
+    activeAction: null,
+    isPlaying: false,
+  };
+}
+
+function hideAnimationControls() {
+  resetAnimationState();
+  elements.animationControls.classList.add("hidden");
+  elements.animationStatus.textContent = "未检测到动画";
+  elements.animationSelect.innerHTML = "";
+  elements.animationToggle.textContent = "播放";
+  elements.animationSelect.disabled = true;
+  elements.animationToggle.disabled = true;
 }
 
 function renderTree(nodes) {
@@ -409,6 +507,7 @@ function fitCameraToObject(camera, controls, object, THREE) {
 
 function resetView() {
   resetSceneOnly();
+  hideAnimationControls();
   currentTree = [];
   selectedNodeId = null;
   elements.previewLabel.textContent = "未加载";
@@ -424,6 +523,7 @@ function resetView() {
 }
 
 function resetSceneOnly() {
+  resetAnimationState();
   if (activeRenderer) {
     activeRenderer.dispose();
     activeRenderer.domElement.remove();

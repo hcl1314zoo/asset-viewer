@@ -239,11 +239,17 @@ h2 {
 }
 
 .tree-view.empty,
-.preview.empty,
 .issue-list .empty {
   display: grid;
   place-items: center;
   min-height: 160px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.preview.empty {
+  display: grid;
+  place-items: center;
   color: var(--muted);
   text-align: center;
 }
@@ -288,6 +294,8 @@ h2 {
 
 .preview {
   position: relative;
+  display: grid;
+  place-items: center;
   min-height: 560px;
   background:
     linear-gradient(45deg, rgba(148, 163, 184, 0.08) 25%, transparent 25%),
@@ -315,6 +323,35 @@ h2 {
   width: 100% !important;
   height: 560px !important;
   max-height: none;
+}
+
+.animation-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--line);
+  background: rgba(15, 23, 42, 0.62);
+}
+
+.animation-controls.hidden {
+  display: none;
+}
+
+.animation-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.animation-actions select {
+  min-width: 220px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: var(--text);
+  background: var(--panel-strong);
 }
 
 .details-grid {

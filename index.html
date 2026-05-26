@@ -69,6 +69,16 @@
             <div id="preview" class="preview empty">
               <p>选择素材后会在这里显示 PSD 合成预览或 3D 模型视窗。</p>
             </div>
+            <div id="animation-controls" class="animation-controls hidden">
+              <div>
+                <strong>动画</strong>
+                <span id="animation-status" class="muted">未检测到动画</span>
+              </div>
+              <div class="animation-actions">
+                <select id="animation-select" aria-label="选择动画"></select>
+                <button id="animation-toggle" class="ghost-button" type="button">播放</button>
+              </div>
+            </div>
           </div>
 
           <div class="details-grid">
@@ -96,6 +106,6 @@
       </section>
     </main>
 
-    <script type="module" src="./app.mjs?v=4"></script>
+    <script type="module" src="./app.mjs?v=6"></script>
   </body>
 </html>
