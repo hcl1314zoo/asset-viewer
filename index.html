@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>本地素材预览器</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=2" />
     <script type="importmap">
       {
         "imports": {
@@ -17,12 +17,13 @@
   <body>
     <main class="app-shell">
       <section class="hero">
-        <div>
-          <p class="eyebrow">Local Asset Inspector</p>
-          <h1>本地素材预览器</h1>
-          <p class="subtitle">
-            将 PSD、FBX、GLB/glTF、OBJ 文件拖进网页，在浏览器里查看预览、层级、基础属性和规范检查结果。
-            文件只在本机解析，不会上传到服务器。
+        <div class="hero-copy">
+          <p class="eyebrow">LOCAL ASSET INSPECTOR</p>
+          <button class="title-button" type="button" aria-describedby="title-note">
+            <h1>本地素材预览器</h1>
+          </button>
+          <p id="title-note" class="subtitle">
+            用浏览器快速检查 PSD 图层、3D 层级、材质信息和动画预览。所有素材都在本机解析，不上传服务器。
           </p>
         </div>
         <div class="support-card">
@@ -35,7 +36,7 @@
         <input id="file-input" type="file" multiple accept=".psd,.fbx,.glb,.gltf,.obj" />
         <div class="drop-icon">+</div>
         <h2>拖拽文件到这里</h2>
-        <p>或点击选择文件。OBJ 的外部材质贴图第一版不会自动关联，建议优先使用 GLB/glTF。</p>
+        <p>或点击选择文件。本地解析，快速查看预览、层级、属性与动画。</p>
       </section>
 
       <section class="workspace">
@@ -54,7 +55,11 @@
           <div class="panel tree-panel">
             <div class="panel-header">
               <h2>层级结构</h2>
-              <span id="tree-count" class="muted">0 项</span>
+              <div class="tree-actions">
+                <button id="expand-tree" class="mini-button" type="button">展开</button>
+                <button id="collapse-tree" class="mini-button" type="button">收起</button>
+                <span id="tree-count" class="muted">0 项</span>
+              </div>
             </div>
             <div id="tree-view" class="tree-view empty">暂无层级信息</div>
           </div>
@@ -106,6 +111,6 @@
       </section>
     </main>
 
-    <script type="module" src="./app.mjs?v=6"></script>
+    <script type="module" src="./app.mjs?v=7"></script>
   </body>
 </html>

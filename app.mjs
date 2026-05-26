@@ -4,6 +4,8 @@ const elements = {
   dropZone: $("#drop-zone"),
   fileInput: $("#file-input"),
   clearButton: $("#clear-button"),
+  expandTree: $("#expand-tree"),
+  collapseTree: $("#collapse-tree"),
   fileInfo: $("#file-info"),
   treeView: $("#tree-view"),
   treeCount: $("#tree-count"),
@@ -25,6 +27,7 @@ let activeRenderer = null;
 let activeObjectUrl = null;
 let currentTree = [];
 let selectedNodeId = null;
+let collapsedNodeIds = new Set();
 let threeRuntime = null;
 let animationState = {
   mixer: null,
@@ -59,6 +62,14 @@ elements.dropZone.addEventListener("drop", (event) => {
 
 elements.fileInput.addEventListener("change", (event) => handleFiles(event.target.files));
 elements.clearButton.addEventListener("click", resetView);
+elements.expandTree.addEventListener("click", () => {
+  collapsedNodeIds.clear();
+  renderTree(currentTree);
+});
+elements.collapseTree.addEventListener("click", () => {
+  collapsedNodeIds = new Set(flattenTree(currentTree).filter((node) => node.children?.length).map((node) => node.id));
+  renderTree(currentTree);
+});
 elements.animationToggle.addEventListener("click", toggleAnimationPlayback);
 elements.animationSelect.addEventListener("change", () => {
   playAnimation(Number(elements.animationSelect.value));
@@ -77,6 +88,7 @@ async function handleFiles(fileList) {
 
   resetSceneOnly();
   selectedNodeId = null;
+  collapsedNodeIds.clear();
   setLoading(`正在解析 ${file.name} ...`);
   renderFileInfo(file, "解析中");
 
@@ -393,15 +405,29 @@ function renderTree(nodes) {
 function renderTreeNode(node) {
   const wrapper = document.createElement("div");
   wrapper.className = "tree-node";
+  wrapper.classList.toggle("collapsed", collapsedNodeIds.has(node.id));
 
   const button = document.createElement("button");
   button.type = "button";
   button.classList.toggle("active", selectedNodeId === node.id);
-  button.innerHTML = `<span>${escapeHtml(node.name)}</span><span class="node-type">${escapeHtml(node.type)}</span>`;
-  button.addEventListener("click", () => {
+  button.title = node.name;
+  const hasChildren = Boolean(node.children?.length);
+  button.innerHTML = `
+    <span class="tree-caret">${hasChildren ? (collapsedNodeIds.has(node.id) ? ">" : "v") : ""}</span>
+    <span class="tree-name">${escapeHtml(node.name)}</span>
+    <span class="node-type">${escapeHtml(node.type)}</span>
+  `;
+  button.addEventListener("click", (event) => {
+    if (hasChildren && (event.offsetX < 38 || event.altKey || event.metaKey || event.ctrlKey)) {
+      toggleTreeNode(node.id);
+      return;
+    }
     selectedNodeId = node.id;
     renderNodeDetails(node);
     renderTree(currentTree);
+  });
+  button.addEventListener("dblclick", () => {
+    if (hasChildren) toggleTreeNode(node.id);
   });
   wrapper.appendChild(button);
 
@@ -415,10 +441,17 @@ function renderTreeNode(node) {
   return wrapper;
 }
 
+function toggleTreeNode(nodeId) {
+  if (collapsedNodeIds.has(nodeId)) {
+    collapsedNodeIds.delete(nodeId);
+  } else {
+    collapsedNodeIds.add(nodeId);
+  }
+  renderTree(currentTree);
+}
+
 function renderNodeDetails(node) {
-  elements.nodeDetails.innerHTML = Object.entries({ 名称: node.name, ...node.details })
-    .map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(String(value))}</dd>`)
-    .join("");
+  renderInfoList(elements.nodeDetails, { 名称: node.name, ...node.details });
 }
 
 function renderFileInfo(file, status, extra = {}) {
@@ -429,8 +462,19 @@ function renderFileInfo(file, status, extra = {}) {
     大小: formatBytes(file.size),
     ...extra,
   };
-  elements.fileInfo.innerHTML = Object.entries(info)
-    .map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(String(value))}</dd>`)
+  renderInfoList(elements.fileInfo, info);
+}
+
+function renderInfoList(target, info) {
+  target.innerHTML = Object.entries(info)
+    .map(
+      ([key, value]) => `
+        <div class="info-row">
+          <dt>${escapeHtml(key)}</dt>
+          <dd title="${escapeHtml(String(value))}">${escapeHtml(String(value))}</dd>
+        </div>
+      `,
+    )
     .join("");
 }
 
@@ -510,11 +554,12 @@ function resetView() {
   hideAnimationControls();
   currentTree = [];
   selectedNodeId = null;
+  collapsedNodeIds.clear();
   elements.previewLabel.textContent = "未加载";
   elements.treeCount.textContent = "0 项";
   elements.issueCount.textContent = "0 条";
-  elements.fileInfo.innerHTML = "<dt>状态</dt><dd>等待选择文件</dd>";
-  elements.nodeDetails.innerHTML = "<dt>状态</dt><dd>点击左侧层级节点查看详情</dd>";
+  renderInfoList(elements.fileInfo, { 状态: "等待选择文件" });
+  renderInfoList(elements.nodeDetails, { 状态: "点击左侧层级节点查看详情" });
   elements.treeView.className = "tree-view empty";
   elements.treeView.textContent = "暂无层级信息";
   elements.preview.className = "preview empty";
