@@ -13,7 +13,8 @@ const elements = {
   previewLabel: $("#preview-label"),
   animationControls: $("#animation-controls"),
   animationStatus: $("#animation-status"),
-  animationSelect: $("#animation-select"),
+  animationMenuButton: $("#animation-menu-button"),
+  animationMenuList: $("#animation-menu-list"),
   animationToggle: $("#animation-toggle"),
   nodeDetails: $("#node-details"),
   issueList: $("#issue-list"),
@@ -71,8 +72,13 @@ elements.collapseTree.addEventListener("click", () => {
   renderTree(currentTree);
 });
 elements.animationToggle.addEventListener("click", toggleAnimationPlayback);
-elements.animationSelect.addEventListener("change", () => {
-  playAnimation(Number(elements.animationSelect.value));
+elements.animationMenuButton.addEventListener("click", () => {
+  elements.animationMenuList.classList.toggle("hidden");
+});
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".animation-menu")) {
+    elements.animationMenuList.classList.add("hidden");
+  }
 });
 
 resetView();
@@ -319,8 +325,10 @@ function setupAnimations(rootObject, animations, THREE) {
   if (!animations.length) {
     elements.animationControls.classList.remove("hidden");
     elements.animationStatus.textContent = "未检测到动画";
-    elements.animationSelect.innerHTML = '<option value="">无可播放动画</option>';
-    elements.animationSelect.disabled = true;
+    elements.animationMenuButton.textContent = "无可播放动画";
+    elements.animationMenuButton.disabled = true;
+    elements.animationMenuList.innerHTML = "";
+    elements.animationMenuList.classList.add("hidden");
     elements.animationToggle.disabled = true;
     elements.animationToggle.textContent = "播放";
     return;
@@ -330,11 +338,20 @@ function setupAnimations(rootObject, animations, THREE) {
   animationState.actions = animations.map((clip) => animationState.mixer.clipAction(clip));
   elements.animationControls.classList.remove("hidden");
   elements.animationStatus.textContent = `检测到 ${animations.length} 个动画`;
-  elements.animationSelect.disabled = false;
+  elements.animationMenuButton.disabled = false;
   elements.animationToggle.disabled = false;
-  elements.animationSelect.innerHTML = animations
-    .map((clip, index) => `<option value="${index}">${escapeHtml(clip.name || `动画 ${index + 1}`)}</option>`)
+  elements.animationMenuList.innerHTML = animations
+    .map(
+      (clip, index) =>
+        `<button class="animation-menu-item" type="button" data-animation-index="${index}">${escapeHtml(clip.name || `动画 ${index + 1}`)}</button>`,
+    )
     .join("");
+  elements.animationMenuList.querySelectorAll(".animation-menu-item").forEach((item) => {
+    item.addEventListener("click", () => {
+      playAnimation(Number(item.dataset.animationIndex));
+      elements.animationMenuList.classList.add("hidden");
+    });
+  });
   playAnimation(0);
 }
 
@@ -350,7 +367,10 @@ function playAnimation(index) {
   animationState.activeAction.reset().play();
   animationState.isPlaying = true;
   elements.animationToggle.textContent = "暂停";
-  elements.animationSelect.value = String(index);
+  elements.animationMenuButton.textContent = elements.animationMenuList.querySelector(`[data-animation-index="${index}"]`)?.textContent || `动画 ${index + 1}`;
+  elements.animationMenuList.querySelectorAll(".animation-menu-item").forEach((item) => {
+    item.classList.toggle("active", Number(item.dataset.animationIndex) === index);
+  });
 }
 
 function toggleAnimationPlayback() {
@@ -380,9 +400,11 @@ function hideAnimationControls() {
   resetAnimationState();
   elements.animationControls.classList.add("hidden");
   elements.animationStatus.textContent = "未检测到动画";
-  elements.animationSelect.innerHTML = "";
+  elements.animationMenuButton.textContent = "无可播放动画";
+  elements.animationMenuList.innerHTML = "";
+  elements.animationMenuList.classList.add("hidden");
   elements.animationToggle.textContent = "播放";
-  elements.animationSelect.disabled = true;
+  elements.animationMenuButton.disabled = true;
   elements.animationToggle.disabled = true;
 }
 

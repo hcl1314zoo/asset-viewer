@@ -32,6 +32,13 @@
         </div>
       </section>
 
+      <section class="feature-strip" aria-label="核心能力">
+        <span>本地解析</span>
+        <span>层级检查</span>
+        <span>动画预览</span>
+        <span>规范提示</span>
+      </section>
+
       <section id="drop-zone" class="drop-zone" tabindex="0">
         <input id="file-input" type="file" multiple accept=".psd,.fbx,.glb,.gltf,.obj" />
         <div class="drop-icon">+</div>
@@ -80,7 +87,10 @@
                 <span id="animation-status" class="muted">未检测到动画</span>
               </div>
               <div class="animation-actions">
-                <select id="animation-select" aria-label="选择动画"></select>
+                <div class="animation-menu">
+                  <button id="animation-menu-button" class="animation-menu-button" type="button">无可播放动画</button>
+                  <div id="animation-menu-list" class="animation-menu-list hidden"></div>
+                </div>
                 <button id="animation-toggle" class="ghost-button" type="button">播放</button>
               </div>
             </div>
@@ -111,6 +121,6 @@
       </section>
     </main>
 
-    <script type="module" src="./app.mjs?v=7"></script>
+    <script type="module" src="./app.mjs?v=8"></script>
   </body>
 </html>
